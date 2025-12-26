@@ -1,0 +1,11 @@
+{
+  "models": {
+    "director": "llama3",
+    "vision": "llava"
+  },
+  "paths": {
+    "photos": "./data/photos",
+    "code": "./data/code"
+  },
+  "schedules": {}
+}

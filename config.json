@@ -1,0 +1,55 @@
+{
+  "version": "1.0.0",
+  "ollama": {
+    "host": "http://localhost:11434",
+    "models": {
+      "reasoning": "llama3",
+      "vision": "llava"
+    },
+    "timeout": 120
+  },
+  "services": {
+    "serverbridge": {
+      "port": 8000,
+      "host": "0.0.0.0",
+      "monitor_index": 1
+    },
+    "inoahbrain": {
+      "port": 8001,
+      "host": "0.0.0.0"
+    },
+    "inoahphoto": {
+      "port": 8002,
+      "host": "0.0.0.0"
+    }
+  },
+  "paths": {
+    "photo_raw": "C:/inoahglobal/inoahphoto/raw_photos",
+    "photo_output": "C:/inoahglobal/inoahphoto/output",
+    "reference_faces": "C:/inoahglobal/inoahphoto/reference_faces",
+    "facefusion_dir": "C:/inoahglobal/inoahphoto/facefusion"
+  },
+  "identity": {
+    "name": "Noah",
+    "context": [
+      "Commercial Pilot",
+      "DU Student",
+      "Engineer",
+      "Colorado Resident",
+      "Spanish Fluency"
+    ],
+    "style_rules": [
+      "No emojis",
+      "Technical precision",
+      "Blunt tone",
+      "No exclamation points",
+      "No hashtags inline",
+      "Professional, high-status"
+    ]
+  },
+  "cloudflare": {
+    "tunnel_id": "fa6f10d0-5642-4a86-9cf3-80b0ecfaf737",
+    "agent_hostname": "agent.noahiberman.com"
+  }
+}
+

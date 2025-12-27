@@ -1,64 +1,207 @@
-Project iNoah: The Sovereign Digital Twin & AI Ecosystem
-Project Definition iNoah is a locally hosted, privacy-first Artificial Intelligence Operating System designed to serve two primary functions:
+# Project iNoah: The Sovereign Digital Twin & AI Ecosystem
 
-A Sovereign Personal Assistant: A complete replacement for Google Gemini and ChatGPT, running entirely on your own hardware to handle research, reasoning, and daily workflows without corporate surveillance or filters.
+## Central Command Hub
 
-An Autonomous "Digital Twin": A centralized nervous system that replicates your visual likeness, writing style, and engineering capabilities to automate your personal brand and digital presence.
+This is the configuration and orchestration center for the entire iNoah system.
 
-Strategic Goals
-Digital Sovereignty: Eliminates reliance on external "Big Tech" ecosystems. Your data, model weights, and cognitive processes remain your private property.
+---
 
-Cognitive Extension: Provides an "Exocortex" that scales your ability to research, code, and produce content without increasing your mental load.
+## Project Vision
 
-Identity Continuity: Ensures that digital interactions (texts, posts, commits) remain consistent with your real-world identity (Pilot, Student, Engineer) regardless of whether you or the AI generated them.
+**iNoah** is a locally hosted, privacy-first AI Operating System designed to serve two primary functions:
 
-Future-Proof Architecture: Designed for modularity, allowing individual AI models and tools to be swapped out instantly as technology evolves without breaking the system.
+1. **A Sovereign Personal Assistant**: A complete replacement for Google Gemini and ChatGPT, running entirely on your own hardware to handle research, reasoning, and daily workflows without corporate surveillance or filters.
 
-Core Capabilities & Abilities
-1. The Sovereign Assistant (The Gemini Replacement)
-Unrestricted General Intelligence: Serves as your primary daily AI for complex reasoning, brainstorming, and decision-making. Unlike Gemini, it has no corporate "safety filters," data tracking, or usage limits.
+2. **An Autonomous "Digital Twin"**: A centralized nervous system that replicates your visual likeness, writing style, and engineering capabilities to automate your personal brand and digital presence.
 
-Deep Personalization (The "Exocortex"): Unlike cloud AIs that "reset" every session, this assistant permanently remembers your specific context (Commercial Pilot, DU Student, Spanish fluency, Colorado resident). It applies this biographical lens to every answer, eliminating the need to explain who you are.
+---
 
-Active Research & Synthesis: Autonomously browses the live web to gather real-time information, synthesizes complex topics, and generates briefings for applied computing coursework or aviation planning.
+## Strategic Goals
 
-2. Visual Engine ("The Face")
-Autonomous Identity Management: Automatically processes and enhances raw photography to maintain a cohesive visual brand.
+| Goal | Description |
+|------|-------------|
+| **Digital Sovereignty** | Your data, model weights, and cognitive processes remain your private property |
+| **Cognitive Extension** | An "Exocortex" that scales your ability to research, code, and produce content |
+| **Identity Continuity** | Digital interactions remain consistent with your real-world identity |
+| **Future-Proof Architecture** | Modular design allows swapping models and tools without breaking the system |
 
-High-Fidelity Enhancement: Applies professional-grade color correction, upscales resolution, and corrects skin texture using localized neural networks (FaceFusion/DirectML) without manual editing.
+---
 
-Identity Consistency: Uses advanced logic to swap and standardize your face across various media assets, ensuring you look consistent in every photo regardless of lighting or source quality.
+## System Architecture
 
-3. Cognitive Engine ("The Voice")
-Linguistic Cloning: Generates captions, emails, and texts that are indistinguishable from your own writing. It references a database of your past communications to replicate your specific sentence structure, technical vocabulary, and blunt tone.
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    inoahglobal (Central Hub)                    │
+│  ┌─────────────┐  ┌─────────────────────────────────────────┐   │
+│  │ config.json │  │ shared/                                 │   │
+│  │             │  │  ├── config_loader.py                   │   │
+│  │ - ollama    │  │  ├── ollama_client.py                   │   │
+│  │ - services  │  │  └── logger.py                          │   │
+│  │ - paths     │  └─────────────────────────────────────────┘   │
+│  │ - identity  │                                                │
+│  └─────────────┘                                                │
+└─────────────────────────────────────────────────────────────────┘
+         │                    │                    │
+         ▼                    ▼                    ▼
+┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
+│  serverbridge   │  │   inoahbrain    │  │   inoahphoto    │
+│  "The Hands"    │  │   "The Voice"   │  │   "The Face"    │
+│   Port 8000     │  │    Port 8001    │  │    Port 8002    │
+└─────────────────┘  └─────────────────┘  └─────────────────┘
+         │                    │
+         └────────────────────┘
+                   │
+                   ▼
+         ┌─────────────────┐
+         │     Ollama      │
+         │   Port 11434    │
+         │  llama3, llava  │
+         └─────────────────┘
+```
 
-Tone Enforcement: Strictly adheres to your communication rules (e.g., "No Emojis," "Technical Precision," "High Agency"), rejecting the generic, polite fluff typical of corporate AI models.
+---
 
-4. Autonomous Engineering ("The Hands")
-Self-Correcting Code: Acts as a specialized software engineer capable of writing, executing, and fixing its own code.
+## Core Components
 
-Agentic Control: It is not just a chatbot; it has permission to touch the server. It can manage files, restart crashed services, and modify its own internal scripts based on plain English commands (e.g., "Update the Instagram posting schedule").
+### 1. The Sovereign Assistant (Gemini Replacement)
+- **Unrestricted Intelligence**: No corporate safety filters, tracking, or usage limits
+- **Deep Personalization**: Permanently remembers your context (Pilot, Student, Engineer)
+- **Active Research**: Browses the web autonomously for real-time information
 
-Workflow Automation: Handles complex, multi-step technical tasks—from managing Docker containers to scraping aviation weather data—without human intervention.
+### 2. The Face (Visual Engine) — `inoahphoto/`
+- **Autonomous Identity Management**: Processes and enhances photography
+- **High-Fidelity Enhancement**: Professional-grade correction via FaceFusion
+- **Identity Consistency**: Standardizes appearance across all media
 
-5. Central Command ("The OS")
-Unified Dashboard: Consolidates the Assistant, the Twin, and the Engineer into a single, intuitive interface (Open WebUI) that mimics the Google Gemini experience but remains fully private.
+### 3. The Voice (Cognitive Engine) — `inoahbrain/`
+- **Linguistic Cloning**: Generates text indistinguishable from your writing
+- **Tone Enforcement**: Strict adherence to communication rules (no emojis, blunt tone)
+- **Caption Generation**: Instagram-ready captions in your voice
 
-Hybrid-Cloud Access: Enables "God Mode" remote control via a secure, encrypted tunnel (Cloudflare Zero Trust). You can access your powerful home AI infrastructure from any mobile device, anywhere in the world, while keeping your data physically stored on your local machine.
+### 4. The Hands (Autonomous Engineering) — `serverbridge/`
+- **Agentic Control**: Permission to touch the server, manage files, restart services
+- **Remote Control**: Screen streaming and input injection from anywhere
+- **Skill Execution**: Natural language commands to complex actions
 
-Sovereign Hosting: Runs entirely on your local hardware (Windows/RX 5700), ensuring total ownership of all knowledge, model weights, and outputs.
+### 5. The Arsenal (Specialized Tools) — `inoahbrain/tools/`
+- **Dating Automation**: Vision-based profile screening and swiping
+- **Social Posting**: Generates and posts to X/Twitter in your voice
+- **Extensible**: Drop in new tools, the system recognizes them immediately
 
-System Architecture: "One Brain, Two Modes"
-To ensure the system is optimized and future-proof, it follows a specific architectural design:
+---
 
-Unified Memory Core: A single Vector Database (ChromaDB) serves as the "hippocampus." When the Assistant learns a new concept (e.g., for university), the Twin immediately gains the ability to write content about it. Private work fuels public output.
+## Quick Start
 
-Director-Worker Hierarchy: The Assistant (Llama 3) acts as the "Director" with logic and reasoning, while specialized scripts (FaceFusion, Scrapers) act as "Workers." The Director commands the Workers via tool-use APIs.
+### Prerequisites
+- Python 3.10+
+- Ollama running locally with models pulled:
+  ```bash
+  ollama pull llama3
+  ollama pull llava
+  ```
 
-Modular Interchangeability:
+### Start All Services
+```bash
+cd inoahglobal
+python start_all.py
+```
 
-Loose Coupling: No script communicates directly with a specific model file. All agents communicate via a standardized API layer (Ollama).
+### Check System Status
+```bash
+python status.py
+```
 
-Swap-Ready: When a better model (e.g., Llama 4) or a better tool (e.g., a new photo enhancer) is released, it can be swapped into the container without rewriting the operating system.
+---
 
-Config-Driven: All variables (models, paths, schedules) are stored in a central JSON configuration file, allowing instant system-wide updates.
+## Configuration
+
+All system settings are centralized in `config.json`:
+
+```json
+{
+  "ollama": {
+    "host": "http://localhost:11434",
+    "models": {"reasoning": "llama3", "vision": "llava"}
+  },
+  "services": {
+    "serverbridge": {"port": 8000},
+    "inoahbrain": {"port": 8001},
+    "inoahphoto": {"port": 8002}
+  },
+  "identity": {
+    "name": "Noah",
+    "context": ["Commercial Pilot", "DU Student", "Engineer"],
+    "style_rules": ["No emojis", "Technical precision", "Blunt tone"]
+  }
+}
+```
+
+Changing a value here updates the entire system.
+
+---
+
+## API Reference
+
+### ServerBridge (port 8000)
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/health` | GET | Health check |
+| `/` | GET | Web dashboard |
+| `/video_feed` | GET | Screen stream |
+| `/click` | POST | Remote click |
+| `/type` | POST | Type text |
+| `/press` | POST | Press key |
+| `/hotkey` | POST | Key combination |
+| `/execute` | POST | Execute skill |
+
+### iNoahBrain (port 8001)
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/health` | GET | Health check |
+| `/generate/caption` | POST | Generate Instagram captions |
+| `/generate/text` | POST | Generate styled text |
+| `/analyze/image` | POST | Vision analysis |
+| `/identity` | GET | Get identity config |
+| `/tools/dating/start` | POST | Start dating automation |
+| `/tools/dating/stop` | POST | Stop dating automation |
+| `/tools/social/post` | POST | Post to social media |
+
+### iNoahPhoto (port 8002)
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/health` | GET | Health check |
+| `/process` | POST | Start batch processing |
+| `/status` | GET | Processing status |
+| `/files/raw` | GET | List raw photos |
+| `/files/output` | GET | List processed photos |
+
+---
+
+## Design Principles
+
+1. **Unified Memory Core**: Single config feeds all services
+2. **Director-Worker Hierarchy**: LLM directs, scripts execute
+3. **Loose Coupling**: All communication via standardized APIs
+4. **Swap-Ready**: New models drop in without code changes
+5. **Config-Driven**: JSON controls the entire system
+
+---
+
+## Remote Access
+
+The system supports secure remote access via Cloudflare Zero Trust tunnel:
+
+```yaml
+# config.yml (serverbridge)
+ingress:
+  - hostname: agent.noahiberman.com
+    service: http://localhost:8000
+```
+
+Access your AI infrastructure from any device, anywhere, while data stays local.
+
+---
+
+## License
+
+Private. All rights reserved.

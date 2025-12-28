@@ -111,3 +111,4 @@ def log_shutdown(logger: logging.Logger, service_name: str):
     """Log standard shutdown message."""
     logger.info(f"iNoah {service_name} shutting down...")
 
+

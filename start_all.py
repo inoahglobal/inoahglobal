@@ -8,6 +8,8 @@ import sys
 import time
 import subprocess
 import signal
+import socket
+import psutil
 from pathlib import Path
 
 # Add shared to path
@@ -68,6 +70,33 @@ SERVICES = [
 
 # Track running processes
 processes = []
+
+
+def kill_processes_on_ports(ports: list):
+    """Kill any processes using the specified ports."""
+    killed_any = False
+    
+    for port in ports:
+        for conn in psutil.net_connections(kind='inet'):
+            if conn.laddr.port == port and conn.status == 'LISTEN':
+                try:
+                    proc = psutil.Process(conn.pid)
+                    proc_name = proc.name()
+                    logger.info(f"Killing process {proc_name} (PID: {conn.pid}) on port {port}")
+                    proc.terminate()
+                    try:
+                        proc.wait(timeout=3)
+                    except psutil.TimeoutExpired:
+                        proc.kill()
+                    killed_any = True
+                except (psutil.NoSuchProcess, psutil.AccessDenied) as e:
+                    logger.warning(f"Could not kill process on port {port}: {e}")
+    
+    if killed_any:
+        time.sleep(1)  # Give OS time to release ports
+        logger.info("Cleared existing processes from ports")
+    
+    return killed_any
 
 
 def check_ollama():
@@ -182,6 +211,11 @@ def main():
     if not check_ollama():
         logger.error("Cannot start without Ollama. Exiting.")
         sys.exit(1)
+    
+    # Kill any existing processes on our ports
+    logger.info("-" * 60)
+    ports = [service["port"] for service in SERVICES]
+    kill_processes_on_ports(ports)
     
     # Start all services
     logger.info("-" * 60)

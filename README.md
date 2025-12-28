@@ -32,14 +32,20 @@ This is the configuration and orchestration center for the entire iNoah system.
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                    inoahglobal (Central Hub)                    │
-│  ┌─────────────┐  ┌─────────────────────────────────────────┐   │
-│  │ config.json │  │ shared/                                 │   │
-│  │             │  │  ├── config_loader.py                   │   │
-│  │ - ollama    │  │  ├── ollama_client.py                   │   │
-│  │ - services  │  │  └── logger.py                          │   │
-│  │ - paths     │  └─────────────────────────────────────────┘   │
-│  │ - identity  │                                                │
-│  └─────────────┘                                                │
+│  ┌─────────────┐  ┌──────────────┐  ┌───────────────────────┐   │
+│  │ config.json │  │   shared/    │  │       memory/         │   │
+│  │             │  │              │  │  "The Exocortex"      │   │
+│  │ - ollama    │  │ config_loader│  │                       │   │
+│  │ - services  │  │ ollama_client│  │  ┌─────────────────┐  │   │
+│  │ - paths     │  │ logger       │  │  │    ChromaDB     │  │   │
+│  │ - identity  │  │              │  │  │ - project_ctx   │  │   │
+│  │             │  │              │  │  │ - conversations │  │   │
+│  └─────────────┘  └──────────────┘  │  │ - identity      │  │   │
+│                                      │  └─────────────────┘  │   │
+│  ┌──────────────────────────────┐   └───────────────────────┘   │
+│  │     identity_facts.json      │                               │
+│  │  Biographical data for RAG   │                               │
+│  └──────────────────────────────┘                               │
 └─────────────────────────────────────────────────────────────────┘
          │                    │                    │
          ▼                    ▼                    ▼
@@ -87,6 +93,47 @@ This is the configuration and orchestration center for the entire iNoah system.
 - **Dating Automation**: Vision-based profile screening and swiping
 - **Social Posting**: Generates and posts to X/Twitter in your voice
 - **Extensible**: Drop in new tools, the system recognizes them immediately
+
+### 6. The Exocortex (Unified Memory) — `memory/`
+- **Persistent Memory**: Conversations and knowledge survive across sessions
+- **Semantic Search**: Find relevant information by meaning via ChromaDB
+- **Auto-Initialization**: Identity facts and project docs load on startup
+- **RAG Integration**: Relevant context injected into every LLM prompt
+
+---
+
+## Memory System
+
+The memory subsystem is the **hippocampus** of iNoah — it's what makes the assistant "remember."
+
+### Collections
+
+| Collection | Purpose | Auto-Populated |
+|------------|---------|----------------|
+| `project_context` | Technical docs, architecture, decisions | On startup (from README/docs) |
+| `conversations` | Chat history, Q&A pairs | After each chat |
+| `identity` | Biographical facts, preferences | On startup (from identity_facts.json) |
+
+### How It Works
+
+1. **Startup**: Memory auto-initializes with identity facts and project docs
+2. **Query**: Each chat retrieves relevant context from all collections
+3. **Inject**: Context is added to the LLM system prompt
+4. **Save**: Completed conversations are saved for future context
+
+### Configuration
+
+Edit `identity_facts.json` to add biographical facts:
+
+```json
+{
+  "biographical": ["Noah is a commercial pilot based in Colorado"],
+  "preferences": ["Noah prefers direct, blunt communication"],
+  "expertise": ["Noah has software engineering experience"]
+}
+```
+
+See [memory/README.md](memory/README.md) for full documentation.
 
 ---
 
@@ -142,11 +189,16 @@ Changing a value here updates the entire system.
 
 ## API Reference
 
-### ServerBridge (port 8000)
+### ServerBridge (port 8000) — API Gateway
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/health` | GET | Health check |
 | `/` | GET | Web dashboard |
+| `/api/status` | GET | Aggregate status of all services |
+| `/api/chat` | POST | Streaming chat with memory (Sovereign Assistant) |
+| `/api/identity` | GET | Get identity config |
+| `/api/brain/*` | * | Proxy to iNoahBrain |
+| `/api/photo/*` | * | Proxy to iNoahPhoto |
 | `/video_feed` | GET | Screen stream |
 | `/click` | POST | Remote click |
 | `/type` | POST | Type text |
@@ -165,6 +217,11 @@ Changing a value here updates the entire system.
 | `/tools/dating/start` | POST | Start dating automation |
 | `/tools/dating/stop` | POST | Stop dating automation |
 | `/tools/social/post` | POST | Post to social media |
+| `/memory/stats` | GET | Get memory collection stats |
+| `/memory/query` | POST | Semantic search memories |
+| `/memory/add` | POST | Add a memory |
+| `/memory/ingest` | POST | Ingest a document file |
+| `/memory/context` | GET | Get RAG context for query |
 
 ### iNoahPhoto (port 8002)
 | Endpoint | Method | Description |
@@ -179,11 +236,13 @@ Changing a value here updates the entire system.
 
 ## Design Principles
 
-1. **Unified Memory Core**: Single config feeds all services
+1. **Unified Memory Core**: ChromaDB vector store provides persistent memory across sessions
 2. **Director-Worker Hierarchy**: LLM directs, scripts execute
 3. **Loose Coupling**: All communication via standardized APIs
 4. **Swap-Ready**: New models drop in without code changes
 5. **Config-Driven**: JSON controls the entire system
+6. **Auto-Initialization**: Memory and identity facts load automatically on startup
+7. **RAG-First**: Every LLM call receives relevant context from memory
 
 ---
 

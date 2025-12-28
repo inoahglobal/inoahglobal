@@ -310,6 +310,185 @@ class MemoryStore:
         if results["ids"]:
             coll.delete(ids=results["ids"])
             logger.info(f"Cleared {len(results['ids'])} documents from {collection}")
+    
+    # =========================================================================
+    # CONVERSATION-SPECIFIC METHODS
+    # =========================================================================
+    
+    def save_conversation_turn(
+        self,
+        user_message: str,
+        assistant_message: str,
+        session_id: Optional[str] = None
+    ) -> str:
+        """
+        Save a conversation turn (user + assistant exchange).
+        
+        Args:
+            user_message: The user's message
+            assistant_message: The assistant's response
+            session_id: Optional session identifier for grouping
+            
+        Returns:
+            Document ID of saved conversation
+        """
+        import time
+        
+        # Format the conversation turn
+        text = f"User: {user_message}\n\nAssistant: {assistant_message}"
+        
+        # Build metadata
+        metadata = {
+            "type": "chat_turn",
+            "timestamp": time.time(),
+            "user_query_preview": user_message[:100] if len(user_message) > 100 else user_message
+        }
+        
+        if session_id:
+            metadata["session_id"] = session_id
+        
+        return self.add_memory(
+            text=text,
+            collection=self.COLLECTION_CONVERSATIONS,
+            metadata=metadata
+        )
+    
+    def get_recent_conversations(
+        self,
+        n_results: int = 10,
+        session_id: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Get recent conversation turns, sorted by timestamp.
+        
+        Args:
+            n_results: Maximum number of conversations to return
+            session_id: Optional filter by session
+            
+        Returns:
+            List of conversation turns with metadata
+        """
+        coll = self._get_collection(self.COLLECTION_CONVERSATIONS)
+        
+        # Build filter
+        where = None
+        if session_id:
+            where = {"session_id": session_id}
+        
+        # Get all conversations (ChromaDB doesn't support ORDER BY)
+        results = coll.get(
+            where=where,
+            include=["documents", "metadatas"]
+        )
+        
+        if not results["documents"]:
+            return []
+        
+        # Combine and sort by timestamp
+        conversations = []
+        for i, doc in enumerate(results["documents"]):
+            meta = results["metadatas"][i] if results["metadatas"] else {}
+            conversations.append({
+                "text": doc,
+                "metadata": meta,
+                "id": results["ids"][i] if results["ids"] else None,
+                "timestamp": meta.get("timestamp", 0)
+            })
+        
+        # Sort by timestamp descending (most recent first)
+        conversations.sort(key=lambda x: x["timestamp"], reverse=True)
+        
+        return conversations[:n_results]
+    
+    def get_conversation_context(
+        self,
+        query_text: str,
+        max_tokens: int = 1000,
+        n_results: int = 3
+    ) -> str:
+        """
+        Get relevant past conversations for context injection.
+        
+        Args:
+            query_text: The current query to match against
+            max_tokens: Approximate max tokens for context
+            n_results: Number of conversations to retrieve
+            
+        Returns:
+            Formatted conversation context string
+        """
+        results = self.query(
+            query_text=query_text,
+            collection=self.COLLECTION_CONVERSATIONS,
+            n_results=n_results
+        )
+        
+        if not results:
+            return ""
+        
+        # Build context string
+        context_parts = []
+        char_count = 0
+        max_chars = max_tokens * 4  # Rough estimate
+        
+        for r in results:
+            text = r["text"]
+            if char_count + len(text) > max_chars:
+                break
+            context_parts.append(text)
+            char_count += len(text)
+        
+        if not context_parts:
+            return ""
+        
+        return "\n\n---\n\n".join(context_parts)
+    
+    def get_full_context(
+        self,
+        query_text: str,
+        max_tokens: int = 2000
+    ) -> str:
+        """
+        Get context from all collections combined.
+        Prioritizes: identity > project > conversations.
+        
+        Args:
+            query_text: The query to match against
+            max_tokens: Approximate max tokens for combined context
+            
+        Returns:
+            Formatted context string with section headers
+        """
+        sections = []
+        remaining_tokens = max_tokens
+        
+        # 1. Identity context (highest priority)
+        identity_results = self.query(
+            query_text, self.COLLECTION_IDENTITY, n_results=3
+        )
+        if identity_results:
+            identity_text = "\n".join(f"- {r['text']}" for r in identity_results)
+            sections.append(f"[IDENTITY]\n{identity_text}")
+            remaining_tokens -= len(identity_text) // 4
+        
+        # 2. Project context
+        if remaining_tokens > 200:
+            project_context = self.get_relevant_context(
+                query_text, max_tokens=remaining_tokens // 2
+            )
+            if project_context:
+                sections.append(f"[PROJECT CONTEXT]\n{project_context}")
+                remaining_tokens -= len(project_context) // 4
+        
+        # 3. Conversation history
+        if remaining_tokens > 200:
+            conv_context = self.get_conversation_context(
+                query_text, max_tokens=remaining_tokens
+            )
+            if conv_context:
+                sections.append(f"[PAST CONVERSATIONS]\n{conv_context}")
+        
+        return "\n\n".join(sections)
 
 
 # Singleton instance
@@ -322,5 +501,6 @@ def get_memory_store() -> MemoryStore:
     if _memory_store is None:
         _memory_store = MemoryStore()
     return _memory_store
+
 
 

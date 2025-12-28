@@ -11,10 +11,17 @@ from pathlib import Path
 from typing import List, Dict, Any, Optional, Generator
 
 # Add parent to path for shared imports
-sys.path.insert(0, str(Path(__file__).parent.parent))
+_parent_dir = str(Path(__file__).parent.parent)
+if _parent_dir not in sys.path:
+    sys.path.insert(0, _parent_dir)
 
 from shared import get_logger
-from .store import MemoryStore, get_memory_store
+
+# Handle both relative import (when used as module) and absolute import (when run directly)
+try:
+    from .store import MemoryStore, get_memory_store
+except ImportError:
+    from store import MemoryStore, get_memory_store
 
 logger = get_logger("ingest")
 
@@ -327,5 +334,6 @@ if __name__ == "__main__":
             print(r['text'][:300] + "...")
     else:
         print("\nNo chunks ingested. Check that Project_Context.md exists.")
+
 
 

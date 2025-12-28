@@ -50,7 +50,33 @@
   "cloudflare": {
     "tunnel_id": "fa6f10d0-5642-4a86-9cf3-80b0ecfaf737",
     "agent_hostname": "agent.noahiberman.com"
+  },
+  "training_data": {
+    "base_dir": "training_data",
+    "dating": {
+      "platform": "tinder",
+      "image_quality": 90,
+      "auto_analyze_threshold": 30,
+      "auto_sync_to_memory": true
+    }
+  },
+  "browser": {
+    "headless": true,
+    "user_data_dir": "../serverbridge-main/tinder_user_data",
+    "viewport": {"width": 1920, "height": 1080},
+    "slow_mo": 100
+  },
+  "dating": {
+    "humanize": {
+      "swipe_delay_min_ms": 1500,
+      "swipe_delay_max_ms": 8000,
+      "thinking_pause_min_ms": 3000,
+      "thinking_pause_max_ms": 12000,
+      "session_break_interval": [15, 25],
+      "session_break_duration_ms": [30000, 120000]
+    }
   }
 }
+
 
 

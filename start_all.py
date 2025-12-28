@@ -1,6 +1,6 @@
 """
 iNoah System Orchestrator
-Starts all iNoah services in the correct order.
+Starts all iNoah services in the correct order using their dedicated virtual environments.
 """
 
 import os
@@ -19,22 +19,50 @@ from shared.config_loader import get_service_config
 # Logger
 logger = get_logger("orchestrator")
 
-# Service definitions
+# --- CONFIGURATION: SERVICE PATHS ---
+# We point directly to the VENV python executable for each service to ensure dependencies are found.
+SERVERBRIDGE_DIR = Path(__file__).parent.parent / "serverbridge-main"
+BRAIN_DIR = Path(__file__).parent.parent / "inoahbrain"
+PHOTO_DIR = Path(__file__).parent.parent / "inoahphoto"
+
+# Helper to find the right python.exe on Windows
+def get_venv_python(directory):
+    return str(directory / "venv" / "Scripts" / "python.exe")
+
 SERVICES = [
     {
         "name": "serverbridge",
-        "path": Path(__file__).parent.parent / "serverbridge-main" / "main.py",
-        "port": get_service_config("serverbridge").get("port", 8000),
+        "command": [
+            get_venv_python(SERVERBRIDGE_DIR), 
+            "-m", "uvicorn", "main:app", 
+            "--host", "0.0.0.0", 
+            "--port", str(get_service_config("serverbridge").get("port", 8000))
+        ],
+        "cwd": str(SERVERBRIDGE_DIR),
+        "port": 8000
     },
     {
         "name": "inoahbrain",
-        "path": Path(__file__).parent.parent / "inoahbrain" / "main.py",
-        "port": get_service_config("inoahbrain").get("port", 8001),
+        "command": [
+            get_venv_python(BRAIN_DIR), 
+            "-m", "uvicorn", "main:app", 
+            "--host", "0.0.0.0", 
+            "--port", str(get_service_config("inoahbrain").get("port", 8001))
+        ],
+        "cwd": str(BRAIN_DIR),
+        "port": 8001
     },
     {
         "name": "inoahphoto",
-        "path": Path(__file__).parent.parent / "inoahphoto" / "main.py",
-        "port": get_service_config("inoahphoto").get("port", 8002),
+        "command": [
+            # Fallback to system python if venv doesn't exist yet for Photo
+            get_venv_python(PHOTO_DIR) if (PHOTO_DIR / "venv").exists() else sys.executable, 
+            "-m", "uvicorn", "main:app", 
+            "--host", "0.0.0.0", 
+            "--port", str(get_service_config("inoahphoto").get("port", 8002))
+        ],
+        "cwd": str(PHOTO_DIR),
+        "port": 8002
     },
 ]
 
@@ -58,7 +86,14 @@ def check_ollama():
             config.get("ollama", {}).get("models", {}).get("vision", "llava"),
         ]
         
-        missing = [m for m in required if m not in models]
+        # Simple check: just see if the string is contained in any available model
+        missing = []
+        for req in required:
+            # Handle "llama3:latest" vs "llama3" mismatch
+            base_name = req.split(':')[0]
+            if not any(base_name in m for m in models):
+                missing.append(req)
+
         if missing:
             logger.warning(f"Missing models: {', '.join(missing)}")
             logger.warning("Run: ollama pull <model_name>")
@@ -73,33 +108,41 @@ def check_ollama():
 def start_service(service: dict) -> subprocess.Popen:
     """Start a single service."""
     name = service["name"]
-    script_path = service["path"]
+    command = service["command"]
+    cwd = service["cwd"]
     port = service["port"]
     
-    if not script_path.exists():
-        logger.error(f"Service script not found: {script_path}")
+    if not Path(cwd).exists():
+        logger.error(f"Service directory not found: {cwd}")
         return None
     
     logger.info(f"Starting {name} on port {port}...")
     
-    # Start the service
-    process = subprocess.Popen(
-        [sys.executable, str(script_path)],
-        cwd=str(script_path.parent),
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-        bufsize=1,
-    )
-    
-    # Give it a moment to start
-    time.sleep(1)
-    
-    if process.poll() is None:
-        logger.info(f"{name} started (PID: {process.pid})")
-        return process
-    else:
-        logger.error(f"{name} failed to start")
+    try:
+        # Start the service
+        process = subprocess.Popen(
+            command,
+            cwd=cwd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,
+        )
+        
+        # Give it a moment to start
+        time.sleep(2)
+        
+        if process.poll() is None:
+            logger.info(f"{name} started (PID: {process.pid})")
+            return process
+        else:
+            # If it died immediately, print the error
+            logger.error(f"{name} failed to start. Exit code: {process.returncode}")
+            output = process.stdout.read()
+            logger.error(f"Output:\n{output}")
+            return None
+    except Exception as e:
+        logger.error(f"Failed to launch {name}: {e}")
         return None
 
 
@@ -150,35 +193,46 @@ def main():
             processes.append(process)
         else:
             logger.warning(f"Skipping {service['name']} due to startup failure")
+            # We append None to keep indices aligned
+            processes.append(None)
     
     # Summary
     logger.info("-" * 60)
     logger.info("iNoah System Status:")
     for service in SERVICES:
-        logger.info(f"  {service['name']}: http://localhost:{service['port']}")
+        status = "ONLINE" if (processes[SERVICES.index(service)] is not None) else "OFFLINE"
+        logger.info(f"  {service['name']}: http://localhost:{service['port']} [{status}]")
     logger.info("-" * 60)
     logger.info("Press Ctrl+C to stop all services")
     
     # Keep running and forward output
     try:
         while True:
+            active_count = 0
             for i, process in enumerate(processes):
                 if process and process.poll() is None:
+                    active_count += 1
                     # Read and print any output
+                    # We use a non-blocking read here if possible, but readline block is okay for now
+                    # strictly because we used bufsize=1
                     line = process.stdout.readline()
                     if line:
                         print(f"[{SERVICES[i]['name']}] {line.rstrip()}")
                 elif process:
-                    # Process died
+                    # Process died during runtime
                     logger.warning(f"{SERVICES[i]['name']} stopped unexpectedly")
+                    # Print remaining logs
+                    rest = process.stdout.read()
+                    if rest: print(f"[{SERVICES[i]['name']}] {rest}")
                     processes[i] = None
             
             # Check if all processes are dead
-            if all(p is None or p.poll() is not None for p in processes):
+            if active_count == 0 and len(SERVICES) > 0:
                 logger.error("All services have stopped!")
                 break
             
-            time.sleep(0.1)
+            # Prevent CPU spin if no logs
+            time.sleep(0.05)
             
     except KeyboardInterrupt:
         pass
@@ -188,5 +242,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-

@@ -25,6 +25,7 @@ logger = get_logger("orchestrator")
 # We point directly to the VENV python executable for each service to ensure dependencies are found.
 SERVERBRIDGE_DIR = Path(__file__).parent.parent / "serverbridge-main"
 BRAIN_DIR = Path(__file__).parent.parent / "inoahbrain"
+BRAIN_PUBLIC_DIR = Path(__file__).parent.parent / "inoahbrain-public"
 PHOTO_DIR = Path(__file__).parent.parent / "inoahphoto"
 
 # Helper to find the right python.exe on Windows
@@ -53,6 +54,18 @@ SERVICES = [
         ],
         "cwd": str(BRAIN_DIR),
         "port": 8001
+    },
+    {
+        "name": "inoahbrain_public",
+        "command": [
+            # Use the PRIVATE brain's venv to avoid reinstalling dependencies
+            get_venv_python(BRAIN_DIR),
+            "-m", "uvicorn", "main:app", 
+            "--host", "0.0.0.0", 
+            "--port", str(get_service_config("inoahbrain_public").get("port", 8003))
+        ],
+        "cwd": str(BRAIN_PUBLIC_DIR),
+        "port": 8003
     },
     {
         "name": "inoahphoto",

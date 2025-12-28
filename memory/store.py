@@ -15,7 +15,7 @@ from chromadb.config import Settings
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from shared import get_logger
-from shared.config_loader import get_config
+from shared.config_loader import get_config, get_path
 
 logger = get_logger("memory")
 
@@ -36,13 +36,17 @@ class MemoryStore:
         Initialize the memory store.
         
         Args:
-            persist_dir: Directory to persist ChromaDB data
+            persist_dir: Directory to persist ChromaDB data (uses config.paths.memory if not provided)
         """
         config = get_config()
         
-        # Default persist directory
+        # Use shared memory path from config, or fallback to local
         if persist_dir is None:
-            persist_dir = str(Path(__file__).parent / "chromadb_data")
+            try:
+                persist_dir = str(get_path("memory"))
+            except Exception:
+                # Fallback if config path not set
+                persist_dir = str(Path(__file__).parent / "chromadb_data")
         
         self.persist_dir = persist_dir
         
